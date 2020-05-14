@@ -3,12 +3,24 @@ import React, {useEffect, useState} from 'react';
 
 function Register() {
   return (
-    <div class="register">
+    <div className="register">
       <form method="POST" action="/api/register">
-        <input type="text" name="name" />
-        <input type="email" name="email" />
-        <input type="password" name="password" />
-        <input type="password" name="confirmpassword" />
+				<label>
+          Name:
+          <input type="text" name="name" />
+        </label>
+				<label>
+          Email:
+          <input type="email" name="email" />
+        </label>
+				<label>
+          Password:
+          <input type="password" name="password" />
+        </label>
+				<label>
+          Confirm Password:
+          <input type="password" name="confirmpassword" />
+        </label>
         <button type="submit">Register</button>
       </form>
     </div>

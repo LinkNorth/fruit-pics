@@ -15,7 +15,7 @@ const app = express();
 app.use(express.static('../client/build'));
 app.use(morgan('dev'));
 
-const userModel = require('./userModel');
+const usersModel = require('./users/usersModel');
 const db = require('./db');
 
 const store = new KnexSessionStore({
@@ -32,44 +32,15 @@ app.use(session({
   store: store
 }));
 
+app.get(['/', '/login', '/upload', '/register', '/users', '/users/:id'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
+
 const apiRouter = express.Router();
 
 apiRouter.use(express.json());
 apiRouter.use(express.urlencoded());
 apiRouter.use(fileUpload());
-
-apiRouter.get('/', (req, res) => {
-  if (!req.session.user_id) {
-    return res.status(401).end();
-  }
-  userModel.getUserById(req.session.user_id)
-    .then(user => {
-      if (user) {
-        res.send({fruits: ['banana'], user_name: user.name});
-      } else {
-        res.status(404).end();
-      }
-    })
-    .catch(e => {
-      console.error(e);
-      res.status(500).end();
-    });
-});
-
-apiRouter.get('/images', (req, res) => {
-  if (!req.session.user_id) {
-    return res.status(401).end();
-  }
-  let userId = req.session.user_id;
-  userModel.getImagesForUser(userId)
-    .then(images => {
-      res.send({images});
-    })
-    .catch(e => {
-      console.error(e);
-      res.status(500).end();
-    });
-});
 
 apiRouter.get('/images/:id', (req, res) => {
   if (!req.session.user_id) {
@@ -80,7 +51,7 @@ apiRouter.get('/images/:id', (req, res) => {
 
   let userId = req.session.user_id;
 
-  userModel.checkImagePermission(userId, imageId)
+  usersModel.checkImagePermission(userId, imageId)
     .then(ok => {
       if (ok) {
         let filePath = path.join(USER_IMAGES_FOLDER, imageId);
@@ -121,9 +92,9 @@ apiRouter.post('/upload', (req, res) => {
       return res.status(500).send(err);
     }
 
-    userModel.addImage(req.session.user_id, fileId + ext)
+    usersModel.addImage(req.session.user_id, fileId + ext)
       .then(() => {
-        res.redirect('/upload');
+        res.redirect('/');
       })
       .catch(e => {
         console.error(e);
@@ -139,7 +110,7 @@ apiRouter.post('/login', (req, res) => {
     return res.status(400).end();
   }
 
-  userModel.validateUser(email, password)
+  usersModel.validateUser(email, password)
     .then(userData => {
       if (userData === null) {
         return res.redirect('/login?error=1');
@@ -168,7 +139,7 @@ apiRouter.post('/register', (req, res) => {
   }
   
   // Create user
-  userModel.createUser({name, email, password})
+  usersModel.createUser({name, email, password})
     .then(() => {
       res.redirect('/login');
     })
@@ -177,6 +148,15 @@ apiRouter.post('/register', (req, res) => {
       res.error(500).end();
     });
 });
+
+const usersRoutes = require('./users/usersRoutes');
+
+apiRouter.get('/users/', usersRoutes.getUsersRoute);
+apiRouter.get('/users/home', usersRoutes.getHome);
+apiRouter.get('/users/:id', usersRoutes.getUserByIdRoute);
+apiRouter.get('/users/:id/images', usersRoutes.getUserImages);
+apiRouter.post('/users/:followingId/follow', usersRoutes.followUser);
+apiRouter.delete('/users/:followingId/follow', usersRoutes.unfollowUser);
 
 app.use('/api', apiRouter);
 

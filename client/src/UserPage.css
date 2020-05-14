@@ -1,0 +1,11 @@
+.image-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+}
+
+.image-container img {
+  max-width: 300px;
+  height: auto;
+  height: 400px;
+}

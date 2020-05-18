@@ -42,7 +42,33 @@ apiRouter.use(express.json());
 apiRouter.use(express.urlencoded());
 apiRouter.use(fileUpload());
 
-apiRouter.get('/images/:id', (req, res) => {
+apiRouter.get('/images/:id/', (req, res) => {
+  if (!req.session.user_id) {
+    return res.status(401).end();
+  }
+
+  let imageId = req.params.id;
+
+  let userId = req.session.user_id;
+
+  usersModel.checkImagePermission(userId, imageId)
+    .then(ok => {
+      if (ok) {
+        usersModel.getImageById(imageId)
+        .then(imageData => {
+          res.json({data: imageData});
+        });
+      } else {
+        res.status(401).end();
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).end();
+    });
+});
+
+apiRouter.get('/images/:id/raw', (req, res) => {
   if (!req.session.user_id) {
     return res.status(401).end();
   }
@@ -77,6 +103,8 @@ apiRouter.post('/upload', (req, res) => {
   }
 
   let file = req.files.file;
+  let title = req.body.title;
+  let description = req.body.description;
 
   // Use the mv() method to place the file somewhere on your server
   let fileId = uuid.v4();
@@ -92,7 +120,7 @@ apiRouter.post('/upload', (req, res) => {
       return res.status(500).send(err);
     }
 
-    usersModel.addImage(req.session.user_id, fileId + ext)
+    usersModel.addImage(req.session.user_id, fileId + ext, title, description)
       .then(() => {
         res.redirect('/');
       })
@@ -157,6 +185,8 @@ apiRouter.get('/users/:id', usersRoutes.getUserByIdRoute);
 apiRouter.get('/users/:id/images', usersRoutes.getUserImages);
 apiRouter.post('/users/:followingId/follow', usersRoutes.followUser);
 apiRouter.delete('/users/:followingId/follow', usersRoutes.unfollowUser);
+apiRouter.post('/images/:id/comment', usersRoutes.createComment);
+apiRouter.post('/images/:id/like', usersRoutes.likeImage);
 
 app.use('/api', apiRouter);
 

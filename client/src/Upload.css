@@ -1,0 +1,19 @@
+.upload form {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.upload form textarea {
+  max-width: 400px;
+  max-height: 400px;
+  min-height: 80px;
+  min-width: 200px;
+}
+
+.upload form label {
+  display: flex;
+  align-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+} 

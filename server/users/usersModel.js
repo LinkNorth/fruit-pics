@@ -53,8 +53,30 @@ function getImagesForUser(userId, page, size) {
     });
 }
 
-function addImage(userId, imageId) {
-  return db('users_images').insert({user_id: userId, image_id: imageId});
+function getImageById(imageId) {
+  return db('users_images').select('image_id', 'user_id', 'created_at', 'updated_at', 'description', 'title').where({image_id: imageId})
+    .then(images => {
+      if (images.length === 1) return images[0];
+      return null;
+    })
+    .then(image => {
+      if (!image) return image;
+      return Promise.all([
+        db('likes').where({image_id: image.image_id}).count('id').then(x => parseInt(x[0].count)),
+        db('comments').select('comments.id', 'comments.user_id', 'comments.comment', 'comments.created_at', 'users.name AS user_name')
+          .where({image_id: image.image_id})
+          .innerJoin('users', 'users.id', 'comments.user_id')
+      ])
+      .then(data => {
+        image.likes = data[0];
+        image.comments = data[1];
+        return image;
+      });
+    });
+}
+
+function addImage(userId, imageId, title, description) {
+  return db('users_images').insert({user_id: userId, image_id: imageId, title, description});
 }
 
 function checkImagePermission(userId, imageId) {
@@ -108,17 +130,37 @@ function doesFollow(followerId, followingId) {
   });
 }
 
+function createComment(imageId, userId, comment) {
+  return db('comments').insert({image_id: imageId, user_id: userId, comment: comment}); 
+}
+
+function likeImage(imageId, userId) {
+  return db('likes').where({image_id: imageId, user_id: userId})
+    .then(likes => {
+      if (likes.length > 0) {
+        // Unlike
+        return db('likes').where({image_id: imageId, user_id: userId}).del(); 
+      } else {
+        // Like
+        return db('likes').insert({image_id: imageId, user_id: userId});
+      }
+    });
+}
+
 module.exports = {
   createUser,
   validateUser,
   getUserById,
   getUsers,
   addImage,
+  getImageById,
   checkImagePermission,
   getImagesForUser,
   getHome,
   followUser,
   unfollowUser,
   doesFollow,
-  getFollowers
+  getFollowers,
+  createComment,
+  likeImage,
 };

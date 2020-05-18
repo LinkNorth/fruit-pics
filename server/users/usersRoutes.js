@@ -107,7 +107,7 @@ function getHome(req, res) {
   if (!req.session.user_id) {
     return res.status(400).end();
   }
-  userId = req.session.user_id;
+  let userId = req.session.user_id;
 
   let size = parseInt(req.query.size);
   let page = parseInt(req.query.page);
@@ -128,6 +128,41 @@ function getHome(req, res) {
     });
 }
 
+function createComment(req, res) {
+  let comment = req.body.comment;
+  if (!req.session.user_id || !comment) {
+    return res.status(400).end();
+  }
+  let userId = req.session.user_id;
+  let imageId = req.params.id;
+
+  usersModel.createComment(imageId, userId, comment)
+    .then(() => {
+      res.status(201).end();
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).end();
+    });
+}
+
+function likeImage(req, res) {
+  if (!req.session.user_id) {
+    return res.status(400).end();
+  }
+  let userId = req.session.user_id;
+  let imageId = req.params.id;
+
+  usersModel.likeImage(imageId, userId)
+    .then(() => {
+      res.status(201).end();
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).end();
+    });
+}
+
 module.exports = {
   getUsersRoute,
   getUserByIdRoute,
@@ -135,4 +170,6 @@ module.exports = {
   getHome,
   followUser,
   unfollowUser,
+  createComment,
+  likeImage,
 };
